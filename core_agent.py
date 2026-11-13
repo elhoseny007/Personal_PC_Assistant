@@ -2,6 +2,10 @@ from config import SIMPLE_MODEL, client,COMPLEX_MODEL
 from tools.registry_tools import execute_tool
 from tools.tool_schema import TOOLS
 import json
+from typing import Any, TypedDict
+
+from langgraph.graph import END, StateGraph
+from tracing import tracing
 
 MAX_ITERATIONS = 5
 MAX_TOOL_RESULT_CHARS = 6000
@@ -318,27 +322,101 @@ def build_messages(system_prompt, history=None, query=None):
 
     return messages
 
+class AgentState(TypedDict, total=False):
+    """State shared by the LangGraph agent nodes."""
+
+    model: str
+    iteration: int
+    tool_calls: list[Any]
+    last_result: Any
+    final_answer: str | None
+    tool_history: list[dict[str, Any]]
+    error: str | None
+    allowed_tools: list[str]
+    tools: list[dict[str, Any]]
+    messages: list[dict[str, Any]]
+
+
+def llm_node(state: AgentState) -> AgentState:
+    """Call Groq and update the conversation state."""
+    updated_state = dict(state)
+    updated_state["iteration"] = updated_state.get("iteration", 0) + 1
+
+    try:
+        response = ask_llm(updated_state)
+    except Exception as e:
+        updated_state["error"] = f"LLM call failed: {e}"
+        return updated_state
+
+    return update_state_from_llm(updated_state, response)
+
+
+def tools_node(state: AgentState) -> AgentState:
+    """Execute requested tools through the existing registry."""
+    updated_state = process_tool_calls(dict(state))
+
+    # Match the old loop behavior: tools from the final allowed LLM
+    # iteration are executed, then the agent stops with this error.
+    if (
+        updated_state.get("iteration", 0) >= MAX_ITERATIONS
+        and updated_state.get("final_answer") is None
+    ):
+        updated_state["error"] = "Maximum iterations reached."
+
+    return updated_state
+
+
+def route_after_llm(state: AgentState) -> str:
+    """Choose whether to execute tools or finish the graph."""
+    if state.get("error") or not state.get("tool_calls"):
+        return "end"
+    return "tools"
+
+
+def route_after_tools(state: AgentState) -> str:
+    """Continue the agent loop unless an error stopped execution."""
+    if state.get("error"):
+        return "end"
+    return "llm"
+
+
+def build_agent_graph():
+    """Build and compile the LangGraph workflow."""
+    workflow = StateGraph(AgentState)
+
+    workflow.add_node("llm", llm_node)
+    workflow.add_node("tools", tools_node)
+
+    workflow.set_entry_point("llm")
+
+    workflow.add_conditional_edges(
+        "llm",
+        route_after_llm,
+        {
+            "tools": "tools",
+            "end": END,
+        },
+    )
+
+    workflow.add_conditional_edges(
+        "tools",
+        route_after_tools,
+        {
+            "llm": "llm",
+            "end": END,
+        },
+    )
+
+    return workflow.compile()
+
+
+# Compile once and reuse the graph for every request.
+agent_graph = build_agent_graph()
+
+
 def agent_loop(state):
-    while state["iteration"] < MAX_ITERATIONS:
-        state["iteration"] += 1
-
-        try:
-            response = ask_llm(state)
-        except Exception as e:
-            state["error"] = f"LLM call failed: {e}"
-            return state
-
-        state = update_state_from_llm(state, response)
-
-        if not state["tool_calls"]:
-            return state
-
-        state = process_tool_calls(state)
-
-    state["error"] = "Maximum iterations reached."
-    return state
-#tracing
-from tracing import tracing
+    """Compatibility wrapper: run the LangGraph using the existing state."""
+    return agent_graph.invoke(state)
 #=========
 def run_agent(
     system_prompt,
