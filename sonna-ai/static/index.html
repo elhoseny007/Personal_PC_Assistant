@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sonna AI Workspace</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">S</span><span>Sonna</span><small>AI WORKSPACE</small></div>
+      <div class="workspace-card"><span class="status-dot"></span><div><b>Personal workspace</b><small>Online and secure</small></div><span class="more">•••</span></div>
+      <p class="eyebrow">SECTIONS</p>
+      <nav id="sections" aria-label="Chat sections"></nav>
+      <div class="chat-controls" aria-label="Chat actions">
+        <button type="button" id="newChatButton"><span>＋</span><span>Create Chat</span></button>
+        <button type="button" id="loadChatsButton"><span>▤</span><span>Load Chats</span></button>
+        <button type="button" id="deleteChatButton"><span>⌫</span><span>Delete Chat</span></button>
+      </div>
+      <div class="sidebar-foot"><div class="avatar">EH</div><div><b>elhoseny hassan</b><small>Owner account</small></div><button aria-label="Settings">⚙</button></div>
+    </aside>
+    <main class="main-panel">
+      <header class="topbar"><div><span class="breadcrumb">WORKSPACE /</span><h1 id="sectionTitle">General Chat</h1></div><div class="top-actions"><button class="icon-btn" aria-label="Search">⌕</button><button class="profile">EH</button></div></header>
+      <section class="content">
+        <div class="intro"><div><p class="eyebrow">PRIVATE CONVERSATION</p><h2 id="welcomeTitle">What are we building today?</h2><p id="welcomeCopy">A focused space for ideas, analysis, and clear next steps.</p></div><div class="date-chip">NOV 06, 2026</div></div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <div class="composer-wrap"><div id="attachments" class="attachments"></div><form id="composer" class="composer"><button type="button" class="tool-btn" id="fileButton" aria-label="Attach files">＋</button><input id="fileInput" type="file" multiple hidden /><textarea id="messageInput" rows="1" placeholder="Message Sonna..."></textarea><button type="button" class="voice-btn" id="voiceButton" aria-label="Record voice">◉</button><button class="send-btn" aria-label="Send message">↑</button></form><p class="composer-hint">Press Enter to send <span>•</span> Files and voice are supported</p></div>
+      </section>
+    </main>
+  </div>
+  <div id="loginModal" class="modal-backdrop" hidden><div class="modal"><button class="modal-close" id="closeModal" aria-label="Close">×</button><span class="modal-icon">◎</span><p class="eyebrow">PROTECTED SECTION</p><h2>AI Monitoring</h2><p>Sign in to inspect uptime, traces, and model latency.</p><form id="loginForm"><label>Email<input id="email" type="email" value="" required /></label><label>Password<input id="password" type="password" required /></label><button class="primary-btn">Open monitoring</button><small id="loginError" class="error"></small></form></div></div>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
